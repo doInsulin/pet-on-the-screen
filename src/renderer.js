@@ -29,11 +29,12 @@ const fallbackProfile = {
     dig: ["Scratch scratch."],
     flop: ["I am flat now."],
     food: ["Meat?"],
+    beg: ["Meat?"],
     sleep: ["Zzz..."],
     sniff: ["Sniff sniff."]
   },
   personality: { clingy: 0.95, playful: 0.96, naughty: 0.88, sleepyWhenAlone: 0.86, foodMotivated: 0.92 },
-  behaviorWeights: { idle: 14, cuddle: 18, parkour: 18, tug: 18, food: 10, sleep: 12, sniff: 8 }
+  behaviorWeights: { idle: 14, cuddle: 18, parkour: 18, tug: 18, food: 10, beg: 12, sleep: 12, sniff: 8 }
 };
 
 let profile = fallbackProfile;
@@ -49,6 +50,11 @@ let sleepPose = "curl";
 let contextualNext = null;
 let currentImageIndex = 0;
 let lastImageSwapAt = 0;
+let parkourVelocityX = 12;
+let parkourVelocityY = 0;
+let nextParkourTurnAt = 0;
+let parkourBurstUntil = 0;
+let parkourPauseUntil = 0;
 
 function colors() {
   return profile.look || fallbackProfile.look;
@@ -72,10 +78,25 @@ const spriteFrames = {
   drink: [4],
   dig: [5, 6],
   food: [7],
+  beg: [0, 2, 7, 12],
   sniff: [6],
   flop: [8, 9, 10],
   sleep: [8, 9, 10, 11, 14],
   pat: [0, 2]
+};
+
+const frameCropInsets = {
+  default: { left: 0.08, right: 0.08, top: 0.07, bottom: 0.08 },
+  2: { left: 0.07, right: 0.07, top: 0.07, bottom: 0.07 },
+  3: { left: 0.04, right: 0.01, top: 0.06, bottom: 0.08 },
+  7: { left: 0.08, right: 0.06, top: 0.07, bottom: 0.07 },
+  8: { left: 0.06, right: 0.06, top: 0.12, bottom: 0.05 },
+  9: { left: 0.06, right: 0.06, top: 0.12, bottom: 0.05 },
+  10: { left: 0.06, right: 0.06, top: 0.12, bottom: 0.05 },
+  11: { left: 0.05, right: 0.05, top: 0.11, bottom: 0.05 },
+  12: { left: 0.07, right: 0.07, top: 0.08, bottom: 0.07 },
+  13: { left: 0.07, right: 0.07, top: 0.08, bottom: 0.07 },
+  14: { left: 0.03, right: 0.03, top: 0.1, bottom: 0.04 }
 };
 
 const needs = {
@@ -95,6 +116,7 @@ const behaviorDurations = {
   parkour: [18000, 42000],
   tug: [6500, 9500],
   food: [4500, 6500],
+  beg: [5000, 9000],
   drink: [5500, 8000],
   dig: [5200, 7600],
   flop: [8000, 14000],
@@ -122,7 +144,9 @@ function behaviorBias(name) {
 }
 
 function line(kind) {
-  const lines = profile.lines?.[kind] || fallbackProfile.lines[kind] || ["..."];
+  const lines = kind === "beg"
+    ? profile.lines?.beg || profile.lines?.food || fallbackProfile.lines.beg || fallbackProfile.lines.food
+    : profile.lines?.[kind] || fallbackProfile.lines[kind] || ["..."];
   return lines[Math.floor(Math.random() * lines.length)];
 }
 
@@ -152,8 +176,11 @@ function setMood(next, duration = null) {
     sleepPose = Math.random() > 0.5 ? "sprawl" : "belly";
   }
   nextMoodAt = moodStartedAt + (duration || randomBetween(behaviorDurations[next] || [4000, 7000]));
-  if (next === "parkour" || next === "sniff" || next === "food") {
+  if (next === "sniff" || next === "food" || next === "beg") {
     facing = Math.random() > 0.5 ? 1 : -1;
+  }
+  if (next === "parkour") {
+    chooseParkourRoute(moodStartedAt, true);
   }
   line(next);
 }
@@ -177,6 +204,7 @@ function applyMoodEffects(name) {
     parkour: { energy: -0.25, sleepiness: 0.18, thirst: 0.22, playfulness: -0.16, curiosity: -0.05, calm: -0.12 },
     tug: { energy: -0.14, social: 0.14, playfulness: -0.2, sleepiness: 0.07, calm: -0.08 },
     food: { hunger: -0.35, energy: 0.08, playfulness: 0.08, calm: -0.04 },
+    beg: { hunger: 0.04, social: -0.02, playfulness: 0.05, calm: -0.03 },
     drink: { thirst: -0.42, calm: 0.06 },
     sniff: { curiosity: -0.24, hunger: 0.05 },
     dig: { sleepiness: 0.08, calm: 0.12, energy: -0.04 },
@@ -202,6 +230,7 @@ function scoreBehaviors() {
     { name: "parkour", score: needs.energy * needs.playfulness * (1 + p.playful + p.naughty) * (1 - needs.sleepiness * 0.65) },
     { name: "tug", score: needs.playfulness * (1.2 + p.playful) + (1 - needs.social) * 0.45 },
     { name: "food", score: needs.hunger * (1.1 + p.foodMotivated) + (mood === "sniff" ? 0.2 : 0) },
+    { name: "beg", score: needs.hunger * (1.2 + p.foodMotivated) + (1 - needs.social) * 0.4 + (alone > 55 ? 0.24 : 0) },
     { name: "drink", score: needs.thirst * 1.7 + (mood === "parkour" ? 0.3 : 0) },
     { name: "sniff", score: needs.curiosity * 1.35 + needs.hunger * 0.25 },
     { name: "dig", score: needs.sleepiness * 0.75 + (1 - needs.energy) * 0.4 + needs.calm * 0.2 },
@@ -215,6 +244,7 @@ function scoreBehaviors() {
       if (candidate.name === "sleep" && needs.sleepiness < 0.45 && needs.energy > 0.35) return false;
       if (candidate.name === "parkour" && needs.energy < 0.28) return false;
       if (candidate.name === "drink" && needs.thirst < 0.38) return false;
+      if (candidate.name === "beg" && needs.hunger < 0.42 && needs.social > 0.35) return false;
       return true;
     });
 }
@@ -223,6 +253,7 @@ function maybeContextualTransition(previousMood) {
   if (previousMood === "parkour" && Math.random() < clamp(needs.thirst + 0.25)) return "drink";
   if ((previousMood === "parkour" || previousMood === "tug") && needs.sleepiness > 0.62 && Math.random() < 0.65) return "flop";
   if ((previousMood === "flop" || previousMood === "dig") && needs.sleepiness > 0.68 && Math.random() < 0.55) return "sleep";
+  if (previousMood === "beg" && needs.hunger > 0.62 && Math.random() < 0.42) return "food";
   if (previousMood === "sniff" && needs.hunger > 0.62 && Math.random() < 0.45) return "food";
   return null;
 }
@@ -304,6 +335,52 @@ function drawFoodCue(t) {
   sparkle(104, y - 20, "#f2b84b");
 }
 
+function drawFoodSparkleCue(t) {
+  const bob = Math.sin(t / 130) * 2;
+  p(112, 100 + bob, 17, 6, "#b95f4f");
+  p(116, 94 + bob, 11, 6, "#f2d8bd");
+  p(119, 91 + bob, 3, 3, "#b94f3f");
+  p(125, 91 + bob, 3, 3, "#b94f3f");
+  sparkle(101, 84 + Math.sin(t / 220) * 2, "#f2b84b");
+  sparkle(136, 91 - bob, "#f7d16a");
+}
+
+function drawTailWagCue(t, cx = 80, cy = 89) {
+  const c = colors();
+  const wag = Math.sin(t / 70);
+  const side = -facing;
+  const rootX = cx + side * 39;
+  const rootY = cy + 12;
+  const tipX = rootX + side * (15 + Math.abs(wag) * 5);
+  const tipY = rootY - 9 + wag * 8;
+
+  ctx.save();
+  ctx.lineWidth = 5;
+  ctx.lineCap = "round";
+  ctx.strokeStyle = c.outline;
+  ctx.beginPath();
+  ctx.moveTo(rootX, rootY);
+  ctx.quadraticCurveTo(rootX + side * 10, rootY - 10, tipX, tipY);
+  ctx.stroke();
+  ctx.lineWidth = 3;
+  ctx.strokeStyle = c.furLight;
+  ctx.beginPath();
+  ctx.moveTo(rootX, rootY);
+  ctx.quadraticCurveTo(rootX + side * 10, rootY - 10, tipX, tipY);
+  ctx.stroke();
+  ctx.restore();
+}
+
+function drawSpeedLines(t) {
+  const phase = Math.floor(t / 90) % 3;
+  const side = -facing;
+  const x = side > 0 ? 22 : 122;
+  const y = 102 + Math.sin(t / 120) * 5;
+  p(x + phase * side * 2, y, 18, 3, "#d8c6aa");
+  p(x + 8 + phase * side, y + 12, 12, 2, "#e9dac2");
+  p(x - 4 + phase * side, y - 11, 10, 2, "#e9dac2");
+}
+
 function drawOffscreenTugCue(t) {
   const c = colors();
   const strain = Math.floor((Math.sin(t / 95) + 1) * 2);
@@ -344,12 +421,46 @@ function drawCushion(t) {
   p(55, 114 + sink, 16, 3, "#f4e3c9");
 }
 
+function chooseParkourRoute(t, immediate = false) {
+  const direction = Math.random() > 0.5 ? 1 : -1;
+  const speed = 10 + Math.random() * 8;
+  const hopChance = Math.random();
+  parkourVelocityX = direction * speed;
+  parkourVelocityY = hopChance > 0.72 ? (Math.random() > 0.5 ? -4 : 4) : Math.round((Math.random() - 0.5) * 4);
+  facing = direction;
+  parkourBurstUntil = t + randomBetween([760, 1450]);
+  parkourPauseUntil = parkourBurstUntil + randomBetween([160, 520]);
+  nextParkourTurnAt = t + (immediate ? randomBetween([650, 1100]) : randomBetween([600, 1400]));
+}
+
 function nudgeWindowForParkour(t) {
-  if (!window.petApi.nudgeWindow || t - lastWindowNudgeAt < 48) return;
+  if (!window.petApi.nudgeWindow || t - lastWindowNudgeAt < 42) return;
   lastWindowNudgeAt = t;
-  const horizontal = facing * (mood === "food" ? 9 : 6);
-  const vertical = mood === "parkour" ? Math.round(Math.sin(t / 180) * 2) : 0;
-  window.petApi.nudgeWindow(horizontal, vertical).catch(() => {});
+
+  if (mood === "parkour") {
+    if (t > nextParkourTurnAt || t > parkourPauseUntil) {
+      chooseParkourRoute(t);
+    }
+    if (t > parkourBurstUntil && t < parkourPauseUntil) return;
+
+    const stepHop = Math.sin(t / 115) > 0.72 ? -5 : 0;
+    const dx = Math.round(parkourVelocityX);
+    const dy = Math.round(parkourVelocityY * 0.45 + stepHop);
+    window.petApi.nudgeWindow(dx, dy).catch(() => {
+      parkourVelocityX *= -1;
+      facing = parkourVelocityX > 0 ? 1 : -1;
+      nextParkourTurnAt = t + 500;
+    });
+    return;
+  }
+
+  if (mood === "food" || mood === "beg") {
+    const active = Math.sin((t - moodStartedAt) / 220) > -0.25;
+    if (!active) return;
+    const horizontal = facing * (mood === "food" ? 7 : 4);
+    const vertical = Math.round(Math.sin(t / 170) * 2);
+    window.petApi.nudgeWindow(horizontal, vertical).catch(() => {});
+  }
 }
 
 function drawSideRun(t) {
@@ -519,11 +630,12 @@ function drawImagePet(t) {
     base.rotation = sleepPose === "belly" ? 0.05 : -0.08;
     base.scaleX *= 1.08;
     base.scaleY = 0.72 + Math.sin(t / 1000) * 0.015;
-  } else if (mood === "parkour" || mood === "food") {
+  } else if (mood === "parkour" || mood === "food" || mood === "beg") {
     base.y += Math.sin(t / 90) * 4;
     base.rotation = Math.sin(t / 110) * 0.08;
     base.scaleX *= 1.03;
-    if (mood === "food") base.scaleY = 1 + Math.max(0, Math.sin(t / 160)) * 0.04;
+    if (mood === "food" || mood === "beg") base.scaleY = 1 + Math.max(0, Math.sin(t / 160)) * 0.04;
+    nudgeWindowForParkour(t);
   } else if (mood === "sniff") {
     base.y += Math.sin(t / 210) * 3;
     base.rotation = facing * 0.04;
@@ -550,15 +662,37 @@ function drawImagePet(t) {
   ctx.translate(base.x, base.y);
   ctx.rotate(base.rotation);
   ctx.scale(base.scaleX, base.scaleY);
+  if (mood === "food" || mood === "beg") drawTailWagCue(t, 0, 0);
   ctx.drawImage(item.image, -width / 2, -height / 2, width, height);
   ctx.restore();
 
+  if (mood === "food" || mood === "beg") drawTailWagCue(t, base.x, base.y);
   if (mood === "tug") drawOffscreenTugCue(t);
   if (mood === "drink") drawWaterBowl(t);
   if (mood === "dig") drawNestMarks(t);
-  if (mood === "food") drawFoodCue(t);
+  if (mood === "food" || mood === "beg") {
+    drawFoodCue(t);
+    drawFoodSparkleCue(t);
+  }
   if (mood === "sleep") drawSleepMarks(t);
   return true;
+}
+
+function getSpriteSourceRect(frame) {
+  const cellX = (frame % spriteSheet.columns) * spriteSheet.frameWidth;
+  const cellY = Math.floor(frame / spriteSheet.columns) * spriteSheet.frameHeight;
+  const insets = frameCropInsets[frame] || frameCropInsets.default;
+  const left = spriteSheet.frameWidth * insets.left;
+  const right = spriteSheet.frameWidth * insets.right;
+  const top = spriteSheet.frameHeight * insets.top;
+  const bottom = spriteSheet.frameHeight * insets.bottom;
+
+  return {
+    sx: cellX + left,
+    sy: cellY + top,
+    sw: Math.max(1, spriteSheet.frameWidth - left - right),
+    sh: Math.max(1, spriteSheet.frameHeight - top - bottom)
+  };
 }
 
 function drawSpritePet(t) {
@@ -572,8 +706,7 @@ function drawSpritePet(t) {
   const frame = frames[Math.floor(age / frameSpeed) % frames.length];
   if (frame < 0 || frame >= spriteSheet.columns * spriteSheet.rows || frame === 15) return false;
 
-  const sx = (frame % spriteSheet.columns) * spriteSheet.frameWidth;
-  const sy = Math.floor(frame / spriteSheet.columns) * spriteSheet.frameHeight;
+  const source = getSpriteSourceRect(frame);
   const base = {
     x: 80,
     y: 82,
@@ -600,14 +733,20 @@ function drawSpritePet(t) {
     base.rotation = -facing * pull * 0.07;
     base.scaleX *= 1 + pull * 0.02;
   } else if (mood === "parkour") {
-    base.y += Math.sin(t / 82) * 5;
-    base.rotation = Math.sin(t / 105) * 0.075;
-    base.scaleX *= 1.02;
+    const step = Math.sin(t / 92);
+    base.y += Math.max(0, -step) * 4 - Math.max(0, step) * 3;
+    base.rotation = facing * 0.06 + Math.sin(t / 120) * 0.035;
+    base.scaleX *= 1.04 + Math.max(0, step) * 0.025;
+    base.scaleY = 0.98 + Math.max(0, -step) * 0.045;
     nudgeWindowForParkour(t);
-  } else if (mood === "food") {
-    base.y += Math.sin(t / 95) * 4 - Math.max(0, Math.sin(t / 150)) * 3;
-    base.rotation = Math.sin(t / 130) * 0.05;
-    base.scaleY = 1 + Math.max(0, Math.sin(t / 150)) * 0.04;
+  } else if (mood === "food" || mood === "beg") {
+    const bounce = Math.max(0, Math.sin(t / 145));
+    base.y += Math.sin(t / 95) * 3 - bounce * 5;
+    base.x += (mood === "beg" ? eyeFocus : facing) * 1.5;
+    base.rotation = Math.sin(t / 130) * (mood === "beg" ? 0.035 : 0.055);
+    base.scaleX *= 1.02 + bounce * 0.03;
+    base.scaleY = 1 + bounce * 0.045;
+    if (mood === "food") nudgeWindowForParkour(t);
   } else if (mood === "sleep" || mood === "flop") {
     base.y += 13;
     base.rotation = mood === "flop" || sleepPose === "sprawl" ? -0.07 : 0.03;
@@ -628,21 +767,23 @@ function drawSpritePet(t) {
 
   const maxW = 136;
   const maxH = 136;
-  const ratio = Math.min(maxW / spriteSheet.frameWidth, maxH / spriteSheet.frameHeight);
-  const width = spriteSheet.frameWidth * ratio;
-  const height = spriteSheet.frameHeight * ratio;
+  const ratio = Math.min(maxW / source.sw, maxH / source.sh);
+  const width = source.sw * ratio;
+  const height = source.sh * ratio;
 
   ctx.save();
   ctx.imageSmoothingEnabled = true;
+  if (mood === "food" || mood === "beg") drawTailWagCue(t, base.x, base.y);
+  if (mood === "parkour") drawSpeedLines(t);
   ctx.translate(base.x, base.y);
   ctx.rotate(base.rotation);
   ctx.scale(base.scaleX, base.scaleY);
   ctx.drawImage(
     spriteSheet.image,
-    sx,
-    sy,
-    spriteSheet.frameWidth,
-    spriteSheet.frameHeight,
+    source.sx,
+    source.sy,
+    source.sw,
+    source.sh,
     -width / 2,
     -height / 2,
     width,
@@ -650,10 +791,14 @@ function drawSpritePet(t) {
   );
   ctx.restore();
 
+  if (mood === "food" || mood === "beg") drawTailWagCue(t, base.x, base.y);
   if (mood === "tug") drawOffscreenTugCue(t);
   if (mood === "drink") drawWaterBowl(t);
   if (mood === "dig") drawNestMarks(t);
-  if (mood === "food") drawFoodCue(t);
+  if (mood === "food" || mood === "beg") {
+    drawFoodCue(t);
+    drawFoodSparkleCue(t);
+  }
   if (mood === "sleep") drawSleepMarks(t);
   return true;
 }
@@ -663,6 +808,7 @@ function drawCanvasDog(t) {
   const age = t - moodStartedAt;
   const bounce = mood === "sleep" || mood === "flop" ? 0 : Math.sin(t / 210) * 2;
   const run = mood === "parkour" || mood === "food";
+  const begging = mood === "beg";
   const pat = mood === "pat" ? Math.max(0, 1 - age / 600) * 4 : 0;
   const tugPull = mood === "tug" ? Math.max(0, Math.sin(t / 90)) * 12 : 0;
   const dig = mood === "dig" ? Math.sin(t / 65) * 5 : 0;
@@ -670,6 +816,8 @@ function drawCanvasDog(t) {
   if (run) {
     xOffset *= 0.88;
     nudgeWindowForParkour(t);
+  } else if (begging) {
+    xOffset = Math.sin(t / 120) * 2;
   } else if (mood === "cuddle") {
     xOffset += (0 - xOffset) * 0.09;
   } else if (mood === "tug") {
@@ -686,9 +834,18 @@ function drawCanvasDog(t) {
   }
 
   if (run) {
+    if (mood === "parkour") drawSpeedLines(t);
     drawSideRun(t);
-    if (mood === "food") drawFoodCue(t);
+    if (mood === "food") {
+      drawTailWagCue(t, 80, 88);
+      drawFoodCue(t);
+      drawFoodSparkleCue(t);
+    }
     return;
+  }
+
+  if (begging) {
+    drawTailWagCue(t, 80 + xOffset, 80 + bounce);
   }
 
   ctx.save();
@@ -737,12 +894,24 @@ function drawCanvasDog(t) {
     p(31, 1, 7, 5, "#ffffff");
   }
 
+  if (begging) {
+    const pawLift = Math.max(0, Math.sin(t / 120)) * 8;
+    p(18, 22 - pawLift, 10, 14, c.outline);
+    p(20, 22 - pawLift, 6, 10, c.furShadow);
+    p(-10 + eyeFocus, -17, 3, 3, "#ffffff");
+    p(20 + eyeFocus, -17, 3, 3, "#ffffff");
+  }
+
   ctx.restore();
 
   if (mood === "tug") drawOffscreenTugCue(t);
   if (mood === "drink") drawWaterBowl(t);
   if (mood === "dig") drawNestMarks(t);
   if (mood === "idle" && Math.sin(t / 900) > 0.55) drawCarrot(116, 94, t);
+  if (begging) {
+    drawFoodCue(t);
+    drawFoodSparkleCue(t);
+  }
   if (mood === "sniff") {
     p(42, 106 + Math.sin(t / 170) * 2, 4, 4, "#d8b483");
     p(35, 112 + Math.sin(t / 170) * 2, 5, 3, "#d8b483");
@@ -833,6 +1002,9 @@ function interact(kind) {
   } else if (kind === "sleep") {
     applyNeedDelta({ sleepiness: 0.25, calm: 0.12 });
     setMood("sleep", 30000);
+  } else if (kind === "food" || kind === "beg") {
+    applyNeedDelta({ hunger: 0.08, social: -0.04, playfulness: 0.08, calm: -0.04 });
+    setMood("beg", 7200);
   }
 }
 
@@ -844,6 +1016,7 @@ window.addEventListener("keydown", (event) => {
   if (key === "p") interact("parkour");
   if (key === "s") interact("sleep");
   if (key === "t") interact("tug");
+  if (key === "f") interact("beg");
 });
 canvas.addEventListener("mousemove", (event) => {
   const rect = canvas.getBoundingClientRect();
