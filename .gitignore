@@ -6,6 +6,7 @@ tmp/
 .conda_pkgs/
 .pip_cache/
 .model_cache/
+.claude/
 output/imagegen/*.png
 output/imagegen/*.webp
 *.log

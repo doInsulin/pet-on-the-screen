@@ -3,7 +3,7 @@ const ctx = canvas.getContext("2d");
 const CANVAS_SIZE = canvas.width;
 const PET_CENTER_X = CANVAS_SIZE / 2;
 const PET_CENTER_Y = CANVAS_SIZE / 2;
-const PET_MAX_DRAW_SIZE = 112;
+const PET_MAX_DRAW_SIZE = 88;
 
 function clampDrawScale(base) {
   const sign = base.scaleX < 0 ? -1 : 1;
@@ -93,32 +93,35 @@ const spriteSheet = {
 };
 
 const spriteFrames = {
-  idle: [0, 12],
-  cuddle: [1, 13],
-  parkour: [2, 12, 13],
+  idle: [0],
+  cuddle: [13],
+  parkour: [0, 2, 0, 12],
   tug: [3],
   drink: [4],
-  dig: [5, 6],
+  dig: [5],
   food: [7],
-  beg: [0, 2, 7, 12],
+  beg: [7],
   sniff: [6],
-  flop: [8, 9, 10],
+  flop: [9, 10],
   sleep: [8, 9, 10, 11, 14],
-  pat: [0, 2]
+  pat: [0]
 };
 
 const frameCropInsets = {
-  default: { left: 0.08, right: 0.08, top: 0.07, bottom: 0.08 },
-  2: { left: 0.07, right: 0.07, top: 0.07, bottom: 0.07 },
-  3: { left: 0.04, right: 0.01, top: 0.06, bottom: 0.08 },
-  7: { left: 0.08, right: 0.06, top: 0.07, bottom: 0.07 },
-  8: { left: 0.06, right: 0.06, top: 0.12, bottom: 0.05 },
-  9: { left: 0.06, right: 0.06, top: 0.12, bottom: 0.05 },
-  10: { left: 0.06, right: 0.06, top: 0.12, bottom: 0.05 },
-  11: { left: 0.05, right: 0.05, top: 0.11, bottom: 0.05 },
-  12: { left: 0.07, right: 0.07, top: 0.08, bottom: 0.07 },
-  13: { left: 0.07, right: 0.07, top: 0.08, bottom: 0.07 },
-  14: { left: 0.03, right: 0.03, top: 0.1, bottom: 0.04 }
+  default: { left: 0.04, right: 0.04, top: 0.04, bottom: 0.04 },
+  0: { left: 0.04, right: 0.04, top: 0.03, bottom: 0.04 },
+  2: { left: 0.05, right: 0.05, top: 0.05, bottom: 0.06 },
+  3: { left: 0.02, right: 0.0, top: 0.04, bottom: 0.05 },
+  4: { left: 0.04, right: 0.04, top: 0.04, bottom: 0.05 },
+  5: { left: 0.05, right: 0.05, top: 0.04, bottom: 0.05 },
+  6: { left: 0.05, right: 0.05, top: 0.05, bottom: 0.05 },
+  7: { left: 0.04, right: 0.03, top: 0.04, bottom: 0.05 },
+  8: { left: 0.04, right: 0.04, top: 0.05, bottom: 0.03 },
+  9: { left: 0.04, right: 0.04, top: 0.05, bottom: 0.03 },
+  10: { left: 0.04, right: 0.04, top: 0.05, bottom: 0.03 },
+  11: { left: 0.04, right: 0.04, top: 0.05, bottom: 0.03 },
+  13: { left: 0.04, right: 0.04, top: 0.04, bottom: 0.04 },
+  14: { left: 0.02, right: 0.02, top: 0.05, bottom: 0.02 }
 };
 
 const needs = {
@@ -133,17 +136,17 @@ const needs = {
 };
 
 const behaviorDurations = {
-  idle: [12000, 22000],
-  cuddle: [9000, 16000],
+  idle: [45000, 120000],
+  cuddle: [20000, 45000],
   parkour: [12000, 24000],
   tug: [6500, 9500],
-  food: [7000, 11000],
-  beg: [8000, 14000],
-  drink: [8000, 12000],
-  dig: [8000, 13000],
-  flop: [12000, 20000],
-  sleep: [30000, 90000],
-  sniff: [9000, 15000],
+  food: [15000, 30000],
+  beg: [20000, 45000],
+  drink: [15000, 30000],
+  dig: [15000, 30000],
+  flop: [30000, 90000],
+  sleep: [1800000, 3600000],
+  sniff: [20000, 45000],
   pat: [2200, 3200]
 };
 
@@ -275,8 +278,6 @@ function scoreBehaviors() {
 
 function maybeContextualTransition(previousMood) {
   if (previousMood === "parkour" && Math.random() < clamp(needs.thirst + 0.25)) return "drink";
-  if ((previousMood === "parkour" || previousMood === "tug") && needs.sleepiness > 0.62 && Math.random() < 0.65) return "flop";
-  if ((previousMood === "flop" || previousMood === "dig") && needs.sleepiness > 0.68 && Math.random() < 0.55) return "sleep";
   if (previousMood === "beg" && needs.hunger > 0.62 && Math.random() < 0.42) return "food";
   if (previousMood === "sniff" && needs.hunger > 0.62 && Math.random() < 0.45) return "food";
   return null;
@@ -685,7 +686,6 @@ function drawImagePet(t) {
   ctx.drawImage(item.image, -width / 2, -height / 2, width, height);
   ctx.restore();
 
-  if (mood === "food" || mood === "beg") drawTailWagCue(t, base.x, base.y);
   if (mood === "tug") drawOffscreenTugCue(t);
   if (mood === "drink") drawWaterBowl(t);
   if (mood === "dig") drawNestMarks(t);
@@ -752,8 +752,8 @@ function drawSpritePet(t) {
     base.rotation = -facing * pull * 0.03;
   } else if (mood === "parkour") {
     const step = Math.sin(t / 92);
-    base.y += Math.max(0, -step) * 3 - Math.max(0, step) * 2;
-    base.rotation = facing * 0.02 + Math.sin(t / 120) * 0.015;
+    base.y += step * 1.4;
+    base.rotation = facing * 0.018 + Math.sin(t / 120) * 0.014;
     nudgeWindowForParkour(t);
   } else if (mood === "food" || mood === "beg") {
     const bounce = Math.max(0, Math.sin(t / 145));
@@ -777,13 +777,12 @@ function drawSpritePet(t) {
   }
 
   clampDrawScale(base);
-  const maxW = PET_MAX_DRAW_SIZE;
-  const maxH = PET_MAX_DRAW_SIZE;
-  const cellRatio = Math.min(maxW / spriteSheet.frameWidth, maxH / spriteSheet.frameHeight);
-  const width = source.sw * cellRatio;
-  const height = source.sh * cellRatio;
-  const dx = -spriteSheet.frameWidth * cellRatio / 2 + source.left * cellRatio;
-  const dy = -spriteSheet.frameHeight * cellRatio / 2 + source.top * cellRatio;
+  const maxSize = PET_MAX_DRAW_SIZE;
+  const ratio = Math.min(maxSize / spriteSheet.frameWidth, maxSize / spriteSheet.frameHeight);
+  const width = source.sw * ratio;
+  const height = source.sh * ratio;
+  const dx = -spriteSheet.frameWidth * ratio / 2 + source.left * ratio;
+  const dy = -spriteSheet.frameHeight * ratio / 2 + source.top * ratio;
 
   ctx.save();
   ctx.imageSmoothingEnabled = true;
@@ -805,7 +804,6 @@ function drawSpritePet(t) {
   );
   ctx.restore();
 
-  if (mood === "food" || mood === "beg") drawTailWagCue(t, base.x, base.y);
   if (mood === "tug") drawOffscreenTugCue(t);
   if (mood === "drink") drawWaterBowl(t);
   if (mood === "dig") drawNestMarks(t);
@@ -1015,10 +1013,30 @@ function interact(kind) {
     setMood("parkour", 22000);
   } else if (kind === "sleep") {
     applyNeedDelta({ sleepiness: 0.25, calm: 0.12 });
-    setMood("sleep", 30000);
-  } else if (kind === "food" || kind === "beg") {
+    setMood("sleep", 30 * 60 * 1000);
+  } else if (kind === "food") {
+    applyNeedDelta({ hunger: -0.28, playfulness: 0.08, calm: -0.04 });
+    setMood("food", 15000);
+  } else if (kind === "beg") {
     applyNeedDelta({ hunger: 0.08, social: -0.04, playfulness: 0.08, calm: -0.04 });
-    setMood("beg", 7200);
+    setMood("beg", 20000);
+  } else if (kind === "idle") {
+    setMood("idle", 45000);
+  } else if (kind === "cuddle") {
+    applyNeedDelta({ social: 0.2, calm: 0.1 });
+    setMood("cuddle", 20000);
+  } else if (kind === "drink") {
+    applyNeedDelta({ thirst: -0.4, calm: 0.05 });
+    setMood("drink", 15000);
+  } else if (kind === "dig") {
+    applyNeedDelta({ sleepiness: 0.08, calm: 0.1 });
+    setMood("dig", 15000);
+  } else if (kind === "flop") {
+    applyNeedDelta({ calm: 0.14, energy: 0.06 });
+    setMood("flop", 30000);
+  } else if (kind === "sniff") {
+    applyNeedDelta({ curiosity: -0.2, hunger: 0.04 });
+    setMood("sniff", 20000);
   }
 }
 
@@ -1026,11 +1044,22 @@ canvas.addEventListener("click", () => interact("pat"));
 canvas.addEventListener("dblclick", () => interact("tug"));
 canvas.addEventListener("auxclick", (event) => event.preventDefault());
 window.addEventListener("keydown", (event) => {
-  const key = event.key.toLowerCase();
-  if (key === "p") interact("parkour");
-  if (key === "s") interact("sleep");
-  if (key === "t") interact("tug");
-  if (key === "f") interact("beg");
+  const shortcuts = {
+    i: "idle",
+    h: "pat",
+    c: "cuddle",
+    p: "parkour",
+    t: "tug",
+    f: "beg",
+    m: "food",
+    w: "drink",
+    d: "dig",
+    l: "flop",
+    s: "sleep",
+    n: "sniff"
+  };
+  const kind = shortcuts[event.key.toLowerCase()];
+  if (kind) interact(kind);
 });
 canvas.addEventListener("mousemove", (event) => {
   const rect = canvas.getBoundingClientRect();

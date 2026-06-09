@@ -6,7 +6,7 @@ const { pathToFileURL } = require("node:url");
 const assetExtensions = new Set([".jpg", ".jpeg", ".png", ".webp", ".gif", ".mp4", ".webm", ".mov"]);
 const imageExtensions = new Set([".jpg", ".jpeg", ".png", ".webp", ".gif"]);
 const videoExtensions = new Set([".mp4", ".webm", ".mov"]);
-const BASE_WINDOW_SIZE = 240;
+const BASE_WINDOW_SIZE = 320;
 
 let mainWindow;
 let tray;
