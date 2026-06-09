@@ -16,7 +16,11 @@ function canvasSafeMax(extraPadding = 0) {
 
 function clampDrawScale(base) {
   base.scaleX = Math.sign(base.scaleX || 1) * Math.min(1, Math.abs(base.scaleX || 1));
-  base.scaleY = Math.min(1, Math.max(0.55, base.scaleY || 1));
+  base.scaleY = 1;
+}
+
+function facingScale() {
+  return facing < 0 ? -1 : 1;
 }
 
 const fallbackProfile = {
@@ -637,7 +641,7 @@ function drawImagePet(t) {
   const base = {
     x: centerX(),
     y: centerY() + 3,
-    scaleX: facing,
+    scaleX: facingScale(),
     scaleY: 1,
     rotation: 0,
     alpha: 1
@@ -648,7 +652,6 @@ function drawImagePet(t) {
   } else if (mood === "pat") {
     const squash = Math.max(0, 1 - age / 500);
     base.y += 4 * squash;
-    base.scaleY = 1 - 0.08 * squash;
   } else if (mood === "tug") {
     const pull = Math.max(0, Math.sin(t / 85));
     base.x -= facing * pull * 8;
@@ -656,11 +659,9 @@ function drawImagePet(t) {
   } else if (mood === "sleep" || mood === "flop") {
     base.y += 8;
     base.rotation = sleepPose === "belly" ? 0.035 : -0.045;
-    base.scaleY = 0.72 + Math.sin(t / 1000) * 0.015;
   } else if (mood === "parkour" || mood === "food" || mood === "beg") {
     base.y += Math.sin(t / 90) * 2.5;
     base.rotation = Math.sin(t / 110) * 0.045;
-    if (mood === "food" || mood === "beg") base.scaleY = 0.96 + Math.max(0, Math.sin(t / 160)) * 0.025;
     nudgeWindowForParkour(t);
   } else if (mood === "sniff") {
     base.y += Math.sin(t / 210) * 2;
@@ -676,9 +677,9 @@ function drawImagePet(t) {
   }
 
   clampDrawScale(base);
-  const maxW = canvasSafeMax(10);
-  const maxH = canvasSafeMax(10);
-  const ratio = Math.min(maxW / item.image.naturalWidth, maxH / item.image.naturalHeight);
+  const maxW = canvasSafeMax(18);
+  const maxH = canvasSafeMax(18);
+  const ratio = Math.min(1, maxW / item.image.naturalWidth, maxH / item.image.naturalHeight);
   const width = item.image.naturalWidth * ratio;
   const height = item.image.naturalHeight * ratio;
 
@@ -717,7 +718,11 @@ function getSpriteSourceRect(frame) {
     sx: cellX + left,
     sy: cellY + top,
     sw: Math.max(1, spriteSheet.frameWidth - left - right),
-    sh: Math.max(1, spriteSheet.frameHeight - top - bottom)
+    sh: Math.max(1, spriteSheet.frameHeight - top - bottom),
+    left,
+    right,
+    top,
+    bottom
   };
 }
 
@@ -736,7 +741,7 @@ function drawSpritePet(t) {
   const base = {
     x: centerX(),
     y: centerY() + 2,
-    scaleX: facing,
+    scaleX: facingScale(),
     scaleY: 1,
     rotation: 0
   };
@@ -749,7 +754,6 @@ function drawSpritePet(t) {
   } else if (mood === "pat") {
     const squash = Math.max(0, 1 - age / 520);
     base.y += 4 * squash - Math.max(0, Math.sin(t / 110)) * 1.5;
-    base.scaleY = 1 - 0.075 * squash;
   } else if (mood === "tug") {
     const pull = Math.max(0, Math.sin(t / 85));
     base.x -= facing * pull * 8;
@@ -758,19 +762,16 @@ function drawSpritePet(t) {
     const step = Math.sin(t / 92);
     base.y += Math.max(0, -step) * 3 - Math.max(0, step) * 2;
     base.rotation = facing * 0.04 + Math.sin(t / 120) * 0.025;
-    base.scaleY = 0.96 + Math.max(0, -step) * 0.035;
     nudgeWindowForParkour(t);
   } else if (mood === "food" || mood === "beg") {
     const bounce = Math.max(0, Math.sin(t / 145));
     base.y += Math.sin(t / 95) * 2 - bounce * 3;
     base.x += (mood === "beg" ? eyeFocus : facing) * 1.5;
     base.rotation = Math.sin(t / 130) * (mood === "beg" ? 0.025 : 0.035);
-    base.scaleY = 0.96 + bounce * 0.035;
     if (mood === "food") nudgeWindowForParkour(t);
   } else if (mood === "sleep" || mood === "flop") {
     base.y += 9;
     base.rotation = mood === "flop" || sleepPose === "sprawl" ? -0.045 : 0.02;
-    base.scaleY = 0.78 + Math.sin(t / 1050) * 0.014;
   } else if (mood === "sniff") {
     base.x += facing * Math.sin(t / 180) * 2;
     base.y += Math.sin(t / 220) * 1.5;
@@ -785,11 +786,13 @@ function drawSpritePet(t) {
   }
 
   clampDrawScale(base);
-  const maxW = canvasSafeMax(10);
-  const maxH = canvasSafeMax(10);
-  const ratio = Math.min(maxW / source.sw, maxH / source.sh);
-  const width = source.sw * ratio;
-  const height = source.sh * ratio;
+  const maxW = canvasSafeMax(18);
+  const maxH = canvasSafeMax(18);
+  const cellRatio = Math.min(1, maxW / spriteSheet.frameWidth, maxH / spriteSheet.frameHeight);
+  const width = source.sw * cellRatio;
+  const height = source.sh * cellRatio;
+  const dx = -spriteSheet.frameWidth * cellRatio / 2 + source.left * cellRatio;
+  const dy = -spriteSheet.frameHeight * cellRatio / 2 + source.top * cellRatio;
 
   ctx.save();
   ctx.imageSmoothingEnabled = true;
@@ -804,8 +807,8 @@ function drawSpritePet(t) {
     source.sy,
     source.sw,
     source.sh,
-    -width / 2,
-    -height / 2,
+    dx,
+    dy,
     width,
     height
   );
