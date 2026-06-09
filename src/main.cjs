@@ -6,6 +6,7 @@ const { pathToFileURL } = require("node:url");
 const assetExtensions = new Set([".jpg", ".jpeg", ".png", ".webp", ".gif", ".mp4", ".webm", ".mov"]);
 const imageExtensions = new Set([".jpg", ".jpeg", ".png", ".webp", ".gif"]);
 const videoExtensions = new Set([".mp4", ".webm", ".mov"]);
+const BASE_WINDOW_SIZE = 240;
 
 let mainWindow;
 let tray;
@@ -85,8 +86,8 @@ function createWindow() {
   const { width, height } = display.workAreaSize;
 
   mainWindow = new BrowserWindow({
-    width: 190,
-    height: 190,
+    width: BASE_WINDOW_SIZE,
+    height: BASE_WINDOW_SIZE,
     x: Math.max(20, width - 340),
     y: Math.max(20, height - 430),
     frame: false,
@@ -184,7 +185,7 @@ ipcMain.handle("window:setAlwaysOnTop", (_event, value) => {
 });
 ipcMain.handle("window:setSize", (_event, scale) => {
   const clamped = Math.min(1.45, Math.max(0.75, Number(scale) || 1));
-  mainWindow.setSize(Math.round(190 * clamped), Math.round(190 * clamped), true);
+  mainWindow.setSize(Math.round(BASE_WINDOW_SIZE * clamped), Math.round(BASE_WINDOW_SIZE * clamped), true);
 });
 ipcMain.handle("window:nudge", (_event, dx, dy) => {
   if (!mainWindow || mainWindow.isDestroyed()) {

@@ -1,5 +1,23 @@
 const canvas = document.getElementById("petCanvas");
 const ctx = canvas.getContext("2d");
+const CANVAS_SAFE_PADDING = 42;
+
+function centerX() {
+  return canvas.width / 2;
+}
+
+function centerY() {
+  return canvas.height / 2;
+}
+
+function canvasSafeMax(extraPadding = 0) {
+  return Math.max(96, Math.min(canvas.width, canvas.height) - (CANVAS_SAFE_PADDING + extraPadding) * 2);
+}
+
+function clampDrawScale(base) {
+  base.scaleX = Math.sign(base.scaleX || 1) * Math.min(1, Math.abs(base.scaleX || 1));
+  base.scaleY = Math.min(1, Math.max(0.55, base.scaleY || 1));
+}
 
 const fallbackProfile = {
   name: "Xiao Budian",
@@ -327,32 +345,35 @@ function drawCarrot(x, y, t) {
 }
 
 function drawFoodCue(t) {
-  const y = 110 + Math.sin(t / 100) * 2;
-  p(112, y, 25, 7, "#b95f4f");
-  p(116, y - 7, 17, 8, "#f2d8bd");
-  p(120, y - 10, 4, 4, "#b94f3f");
-  p(128, y - 10, 4, 4, "#b94f3f");
-  sparkle(104, y - 20, "#f2b84b");
+  const x = centerX() + 45;
+  const y = centerY() + 30 + Math.sin(t / 100) * 1.5;
+  p(x, y, 25, 7, "#b95f4f");
+  p(x + 4, y - 7, 17, 8, "#f2d8bd");
+  p(x + 8, y - 10, 4, 4, "#b94f3f");
+  p(x + 16, y - 10, 4, 4, "#b94f3f");
+  sparkle(x - 8, y - 20, "#f2b84b");
 }
 
 function drawFoodSparkleCue(t) {
-  const bob = Math.sin(t / 130) * 2;
-  p(112, 100 + bob, 17, 6, "#b95f4f");
-  p(116, 94 + bob, 11, 6, "#f2d8bd");
-  p(119, 91 + bob, 3, 3, "#b94f3f");
-  p(125, 91 + bob, 3, 3, "#b94f3f");
-  sparkle(101, 84 + Math.sin(t / 220) * 2, "#f2b84b");
-  sparkle(136, 91 - bob, "#f7d16a");
+  const bob = Math.sin(t / 130) * 1.5;
+  const x = centerX() + 45;
+  const y = centerY() + 20;
+  p(x, y + bob, 17, 6, "#b95f4f");
+  p(x + 4, y - 6 + bob, 11, 6, "#f2d8bd");
+  p(x + 7, y - 9 + bob, 3, 3, "#b94f3f");
+  p(x + 13, y - 9 + bob, 3, 3, "#b94f3f");
+  sparkle(x - 11, y - 16 + Math.sin(t / 220) * 1.5, "#f2b84b");
+  sparkle(x + 24, y - 9 - bob, "#f7d16a");
 }
 
-function drawTailWagCue(t, cx = 80, cy = 89) {
+function drawTailWagCue(t, cx = centerX(), cy = centerY() + 9) {
   const c = colors();
   const wag = Math.sin(t / 70);
   const side = -facing;
   const rootX = cx + side * 39;
   const rootY = cy + 12;
-  const tipX = rootX + side * (15 + Math.abs(wag) * 5);
-  const tipY = rootY - 9 + wag * 8;
+  const tipX = rootX + side * (13 + Math.abs(wag) * 4);
+  const tipY = rootY - 8 + wag * 5;
 
   ctx.save();
   ctx.lineWidth = 5;
@@ -374,8 +395,8 @@ function drawTailWagCue(t, cx = 80, cy = 89) {
 function drawSpeedLines(t) {
   const phase = Math.floor(t / 90) % 3;
   const side = -facing;
-  const x = side > 0 ? 22 : 122;
-  const y = 102 + Math.sin(t / 120) * 5;
+  const x = side > 0 ? centerX() - 78 : centerX() + 42;
+  const y = centerY() + 22 + Math.sin(t / 120) * 3;
   p(x + phase * side * 2, y, 18, 3, "#d8c6aa");
   p(x + 8 + phase * side, y + 12, 12, 2, "#e9dac2");
   p(x - 4 + phase * side, y - 11, 10, 2, "#e9dac2");
@@ -384,41 +405,51 @@ function drawSpeedLines(t) {
 function drawOffscreenTugCue(t) {
   const c = colors();
   const strain = Math.floor((Math.sin(t / 95) + 1) * 2);
-  p(123 + strain, 61, 13, 8, c.rope);
-  p(136 + strain, 58, 5, 14, "#cfad86");
-  p(146 + strain, 54, 3, 3, "#cfad86");
-  p(151 + strain, 61, 3, 3, "#cfad86");
+  const x = centerX() + 43;
+  const y = centerY() - 19;
+  p(x + strain, y, 13, 8, c.rope);
+  p(x + 13 + strain, y - 3, 5, 14, "#cfad86");
+  p(x + 23 + strain, y - 7, 3, 3, "#cfad86");
+  p(x + 28 + strain, y, 3, 3, "#cfad86");
 }
 
 function drawSleepMarks(t) {
   const phase = Math.floor(t / 420) % 3;
-  p(111, 45 - phase * 3, 5, 2, "#5d6fa0");
-  p(114, 42 - phase * 3, 6, 2, "#5d6fa0");
-  p(111, 39 - phase * 3, 9, 2, "#5d6fa0");
-  p(124, 31 - phase * 2, 4, 2, "#5d6fa0");
-  p(126, 28 - phase * 2, 5, 2, "#5d6fa0");
+  const x = centerX() + 31;
+  const y = centerY() - 75;
+  p(x, y - phase * 3, 5, 2, "#5d6fa0");
+  p(x + 3, y - 3 - phase * 3, 6, 2, "#5d6fa0");
+  p(x, y - 6 - phase * 3, 9, 2, "#5d6fa0");
+  p(x + 13, y - 14 - phase * 2, 4, 2, "#5d6fa0");
+  p(x + 15, y - 17 - phase * 2, 5, 2, "#5d6fa0");
 }
 
 function drawWaterBowl(t) {
   const shimmer = Math.floor(t / 260) % 2;
-  p(105, 119, 30, 7, "#8bb6d8");
-  p(109, 114, 22, 7, "#d5efff");
-  p(113 + shimmer * 4, 116, 7, 2, "#6bbde9");
-  p(123 - shimmer * 3, 117, 5, 2, "#6bbde9");
+  const x = centerX() + 25;
+  const y = centerY() + 39;
+  p(x, y, 30, 7, "#8bb6d8");
+  p(x + 4, y - 5, 22, 7, "#d5efff");
+  p(x + 8 + shimmer * 4, y - 3, 7, 2, "#6bbde9");
+  p(x + 18 - shimmer * 3, y - 2, 5, 2, "#6bbde9");
 }
 
 function drawNestMarks(t) {
-  const sweep = Math.sin(t / 80) * 6;
-  p(43 + sweep, 123, 25, 3, "#d9c3a1");
-  p(47 - sweep, 130, 32, 3, "#d9c3a1");
-  p(56 + sweep * 0.5, 137, 24, 3, "#d9c3a1");
+  const sweep = Math.sin(t / 80) * 5;
+  const x = centerX() - 37;
+  const y = centerY() + 43;
+  p(x + sweep, y, 25, 3, "#d9c3a1");
+  p(x + 4 - sweep, y + 7, 32, 3, "#d9c3a1");
+  p(x + 13 + sweep * 0.5, y + 14, 24, 3, "#d9c3a1");
 }
 
 function drawCushion(t) {
   const sink = Math.sin(t / 360) * 1;
-  p(36, 122 + sink, 82, 10, "#d6b895");
-  p(42, 117 + sink, 68, 8, "#ead4b5");
-  p(55, 114 + sink, 16, 3, "#f4e3c9");
+  const x = centerX() - 44;
+  const y = centerY() + 42;
+  p(x, y + sink, 82, 10, "#d6b895");
+  p(x + 6, y - 5 + sink, 68, 8, "#ead4b5");
+  p(x + 19, y - 8 + sink, 16, 3, "#f4e3c9");
 }
 
 function chooseParkourRoute(t, immediate = false) {
@@ -470,7 +501,7 @@ function drawSideRun(t) {
   const headBob = Math.sin(t / 120) * 2;
 
   ctx.save();
-  ctx.translate(80, 88 - lift);
+  ctx.translate(centerX(), centerY() + 8 - lift);
   ctx.scale(facing, 1);
   ctx.rotate(Math.sin(t / 150) * 0.05);
 
@@ -510,7 +541,7 @@ function drawSideRun(t) {
 function drawCurledSleep(t) {
   const c = colors();
   ctx.save();
-  ctx.translate(80, 90);
+  ctx.translate(centerX(), centerY() + 10);
   ctx.rotate(-0.05);
   blob(-1, 13, 4, [
     [-6, -5, 5], [-5, -7, 7], [-4, -8, 8], [-3, -9, 9], [-2, -10, 10],
@@ -535,7 +566,7 @@ function drawCurledSleep(t) {
 function drawBellySleep(t) {
   const c = colors();
   ctx.save();
-  ctx.translate(80, 91);
+  ctx.translate(centerX(), centerY() + 11);
   p(-35, 12, 70, 33, c.outline);
   p(-31, 15, 62, 27, c.fur);
   p(-19, 19, 38, 17, c.furLight);
@@ -558,7 +589,7 @@ function drawSprawlSleep(t) {
   const c = colors();
   drawCushion(t);
   ctx.save();
-  ctx.translate(80, 99);
+  ctx.translate(centerX(), centerY() + 19);
   p(-47, 6, 88, 28, c.outline);
   p(-43, 9, 80, 22, c.fur);
   p(-38, 3, 36, 12, c.furLight);
@@ -604,8 +635,8 @@ function drawImagePet(t) {
 
   const age = t - moodStartedAt;
   const base = {
-    x: 80,
-    y: 83,
+    x: centerX(),
+    y: centerY() + 3,
     scaleX: facing,
     scaleY: 1,
     rotation: 0,
@@ -613,45 +644,40 @@ function drawImagePet(t) {
   };
 
   if (mood === "idle") {
-    base.y += Math.sin(t / 420) * 2;
-    base.scaleY = 1 + Math.sin(t / 600) * 0.018;
+    base.y += Math.sin(t / 420) * 1.5;
   } else if (mood === "pat") {
     const squash = Math.max(0, 1 - age / 500);
-    base.y += 6 * squash;
-    base.scaleX *= 1 + 0.08 * squash;
+    base.y += 4 * squash;
     base.scaleY = 1 - 0.08 * squash;
   } else if (mood === "tug") {
     const pull = Math.max(0, Math.sin(t / 85));
-    base.x -= facing * pull * 13;
-    base.rotation = -facing * pull * 0.07;
-    base.scaleX *= 1 + pull * 0.025;
+    base.x -= facing * pull * 8;
+    base.rotation = -facing * pull * 0.045;
   } else if (mood === "sleep" || mood === "flop") {
-    base.y += 9;
-    base.rotation = sleepPose === "belly" ? 0.05 : -0.08;
-    base.scaleX *= 1.08;
+    base.y += 8;
+    base.rotation = sleepPose === "belly" ? 0.035 : -0.045;
     base.scaleY = 0.72 + Math.sin(t / 1000) * 0.015;
   } else if (mood === "parkour" || mood === "food" || mood === "beg") {
-    base.y += Math.sin(t / 90) * 4;
-    base.rotation = Math.sin(t / 110) * 0.08;
-    base.scaleX *= 1.03;
-    if (mood === "food" || mood === "beg") base.scaleY = 1 + Math.max(0, Math.sin(t / 160)) * 0.04;
+    base.y += Math.sin(t / 90) * 2.5;
+    base.rotation = Math.sin(t / 110) * 0.045;
+    if (mood === "food" || mood === "beg") base.scaleY = 0.96 + Math.max(0, Math.sin(t / 160)) * 0.025;
     nudgeWindowForParkour(t);
   } else if (mood === "sniff") {
-    base.y += Math.sin(t / 210) * 3;
-    base.rotation = facing * 0.04;
+    base.y += Math.sin(t / 210) * 2;
+    base.rotation = facing * 0.025;
   } else if (mood === "dig") {
-    base.x += Math.sin(t / 70) * 4;
-    base.rotation = Math.sin(t / 90) * 0.05;
+    base.x += Math.sin(t / 70) * 3;
+    base.rotation = Math.sin(t / 90) * 0.035;
   } else if (mood === "cuddle") {
-    base.scaleX *= 1.04;
-    base.scaleY = 1.04;
+    base.y += Math.sin(t / 500) * 1;
   } else if (mood === "drink") {
-    base.rotation = 0.05 * facing;
-    base.y += 4;
+    base.rotation = 0.03 * facing;
+    base.y += 3;
   }
 
-  const maxW = 136;
-  const maxH = 138;
+  clampDrawScale(base);
+  const maxW = canvasSafeMax(10);
+  const maxH = canvasSafeMax(10);
   const ratio = Math.min(maxW / item.image.naturalWidth, maxH / item.image.naturalHeight);
   const width = item.image.naturalWidth * ratio;
   const height = item.image.naturalHeight * ratio;
@@ -708,65 +734,59 @@ function drawSpritePet(t) {
 
   const source = getSpriteSourceRect(frame);
   const base = {
-    x: 80,
-    y: 82,
+    x: centerX(),
+    y: centerY() + 2,
     scaleX: facing,
     scaleY: 1,
     rotation: 0
   };
 
   if (mood === "idle" || mood === "cuddle") {
-    base.y += Math.sin(t / 430) * 2;
-    base.scaleY = 1 + Math.sin(t / 620) * 0.018;
+    base.y += Math.sin(t / 430) * 1.5;
     if (mood === "cuddle") {
-      base.scaleX *= 1.03;
-      base.scaleY += 0.025;
+      base.y += Math.sin(t / 620) * 1;
     }
   } else if (mood === "pat") {
     const squash = Math.max(0, 1 - age / 520);
-    base.y += 5 * squash - Math.max(0, Math.sin(t / 110)) * 2;
-    base.scaleX *= 1 + 0.07 * squash;
+    base.y += 4 * squash - Math.max(0, Math.sin(t / 110)) * 1.5;
     base.scaleY = 1 - 0.075 * squash;
   } else if (mood === "tug") {
     const pull = Math.max(0, Math.sin(t / 85));
-    base.x -= facing * pull * 11;
-    base.rotation = -facing * pull * 0.07;
-    base.scaleX *= 1 + pull * 0.02;
+    base.x -= facing * pull * 8;
+    base.rotation = -facing * pull * 0.045;
   } else if (mood === "parkour") {
     const step = Math.sin(t / 92);
-    base.y += Math.max(0, -step) * 4 - Math.max(0, step) * 3;
-    base.rotation = facing * 0.06 + Math.sin(t / 120) * 0.035;
-    base.scaleX *= 1.04 + Math.max(0, step) * 0.025;
-    base.scaleY = 0.98 + Math.max(0, -step) * 0.045;
+    base.y += Math.max(0, -step) * 3 - Math.max(0, step) * 2;
+    base.rotation = facing * 0.04 + Math.sin(t / 120) * 0.025;
+    base.scaleY = 0.96 + Math.max(0, -step) * 0.035;
     nudgeWindowForParkour(t);
   } else if (mood === "food" || mood === "beg") {
     const bounce = Math.max(0, Math.sin(t / 145));
-    base.y += Math.sin(t / 95) * 3 - bounce * 5;
+    base.y += Math.sin(t / 95) * 2 - bounce * 3;
     base.x += (mood === "beg" ? eyeFocus : facing) * 1.5;
-    base.rotation = Math.sin(t / 130) * (mood === "beg" ? 0.035 : 0.055);
-    base.scaleX *= 1.02 + bounce * 0.03;
-    base.scaleY = 1 + bounce * 0.045;
+    base.rotation = Math.sin(t / 130) * (mood === "beg" ? 0.025 : 0.035);
+    base.scaleY = 0.96 + bounce * 0.035;
     if (mood === "food") nudgeWindowForParkour(t);
   } else if (mood === "sleep" || mood === "flop") {
-    base.y += 13;
-    base.rotation = mood === "flop" || sleepPose === "sprawl" ? -0.07 : 0.03;
-    base.scaleX *= 1.06;
+    base.y += 9;
+    base.rotation = mood === "flop" || sleepPose === "sprawl" ? -0.045 : 0.02;
     base.scaleY = 0.78 + Math.sin(t / 1050) * 0.014;
   } else if (mood === "sniff") {
     base.x += facing * Math.sin(t / 180) * 2;
-    base.y += Math.sin(t / 220) * 2;
-    base.rotation = facing * 0.035;
+    base.y += Math.sin(t / 220) * 1.5;
+    base.rotation = facing * 0.025;
   } else if (mood === "dig") {
-    base.x += Math.sin(t / 68) * 4;
-    base.y += Math.sin(t / 130) * 2;
-    base.rotation = Math.sin(t / 90) * 0.05;
+    base.x += Math.sin(t / 68) * 3;
+    base.y += Math.sin(t / 130) * 1.5;
+    base.rotation = Math.sin(t / 90) * 0.035;
   } else if (mood === "drink") {
-    base.y += 5;
-    base.rotation = facing * 0.035;
+    base.y += 3;
+    base.rotation = facing * 0.025;
   }
 
-  const maxW = 136;
-  const maxH = 136;
+  clampDrawScale(base);
+  const maxW = canvasSafeMax(10);
+  const maxH = canvasSafeMax(10);
   const ratio = Math.min(maxW / source.sw, maxH / source.sh);
   const width = source.sw * ratio;
   const height = source.sh * ratio;
@@ -837,7 +857,7 @@ function drawCanvasDog(t) {
     if (mood === "parkour") drawSpeedLines(t);
     drawSideRun(t);
     if (mood === "food") {
-      drawTailWagCue(t, 80, 88);
+      drawTailWagCue(t, centerX(), centerY() + 8);
       drawFoodCue(t);
       drawFoodSparkleCue(t);
     }
@@ -845,11 +865,11 @@ function drawCanvasDog(t) {
   }
 
   if (begging) {
-    drawTailWagCue(t, 80 + xOffset, 80 + bounce);
+    drawTailWagCue(t, centerX() + xOffset, centerY() + bounce);
   }
 
   ctx.save();
-  ctx.translate(80 + xOffset + dig * 0.3, 80 + bounce + pat);
+  ctx.translate(centerX() + xOffset + dig * 0.3, centerY() + bounce + pat);
   ctx.scale(facing, 1);
 
   blob(0, 34, 3, bodyRows, c.outline);
