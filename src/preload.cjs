@@ -6,6 +6,7 @@ contextBridge.exposeInMainWorld("petApi", {
   setAlwaysOnTop: (value) => ipcRenderer.invoke("window:setAlwaysOnTop", value),
   setSize: (scale) => ipcRenderer.invoke("window:setSize", scale),
   nudgeWindow: (dx, dy) => ipcRenderer.invoke("window:nudge", dx, dy),
+  homeWindow: () => ipcRenderer.invoke("window:home"),
   quit: () => ipcRenderer.invoke("app:quit"),
   onPetAction: (callback) => {
     const listener = (_event, action) => callback(action);

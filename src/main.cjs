@@ -11,6 +11,22 @@ const BASE_WINDOW_SIZE = 240;
 let mainWindow;
 let tray;
 
+function homeBounds() {
+  const display = screen.getPrimaryDisplay();
+  const { workArea } = display;
+  const [windowWidth, windowHeight] = mainWindow ? mainWindow.getSize() : [BASE_WINDOW_SIZE, BASE_WINDOW_SIZE];
+  return {
+    x: workArea.x + workArea.width - windowWidth - 80,
+    y: workArea.y + workArea.height - windowHeight - 80
+  };
+}
+
+function moveWindowHome() {
+  if (!mainWindow || mainWindow.isDestroyed()) return;
+  const { x, y } = homeBounds();
+  mainWindow.setPosition(x, y, false);
+}
+
 function petDir() {
   return path.join(app.getPath("userData"), "pet-assets");
 }
@@ -82,14 +98,9 @@ async function listPetAssets() {
 }
 
 function createWindow() {
-  const display = screen.getPrimaryDisplay();
-  const { width, height } = display.workAreaSize;
-
   mainWindow = new BrowserWindow({
     width: BASE_WINDOW_SIZE,
     height: BASE_WINDOW_SIZE,
-    x: Math.max(20, width - 340),
-    y: Math.max(20, height - 430),
     frame: false,
     transparent: true,
     resizable: false,
@@ -104,6 +115,7 @@ function createWindow() {
   });
 
   mainWindow.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
+  moveWindowHome();
   mainWindow.loadFile(path.join(__dirname, "index.html"));
 }
 
@@ -198,6 +210,7 @@ ipcMain.handle("window:nudge", (_event, dx, dy) => {
   const nextY = Math.min(workArea.y + workArea.height - height, Math.max(workArea.y, y + Math.round(Number(dy) || 0)));
   mainWindow.setPosition(nextX, nextY, false);
 });
+ipcMain.handle("window:home", () => moveWindowHome());
 ipcMain.handle("app:quit", () => app.quit());
 
 app.whenReady().then(async () => {
