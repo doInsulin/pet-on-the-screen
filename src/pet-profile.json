@@ -1,0 +1,60 @@
+{
+  "name": "Xiao Budian",
+  "nicknames": ["Budandian", "Miss Dian"],
+  "breed": "tiny white bichon frise",
+  "age": "1.5 years",
+  "look": {
+    "fur": "#fffaf0",
+    "furLight": "#ffffff",
+    "furShadow": "#e8ddc9",
+    "furWarm": "#f8efd9",
+    "outline": "#e9ddc9",
+    "eye": "#171310",
+    "nose": "#15110f",
+    "mouth": "#5b4038",
+    "blush": "#f1a7a2",
+    "blueToy": "#67aeea",
+    "blueToyShadow": "#4089ca",
+    "carrot": "#f28a34",
+    "carrotLeaf": "#5aa96d",
+    "rope": "#8b6a53"
+  },
+  "personality": {
+    "clingy": 0.95,
+    "playful": 0.96,
+    "naughty": 0.88,
+    "sleepyWhenAlone": 0.86,
+    "foodMotivated": 0.92
+  },
+  "habits": [
+    "tiny white Bichon, no collar",
+    "very lively and naughty",
+    "likes indoor parkour",
+    "loves tug-of-war",
+    "very clingy",
+    "can sleep all afternoon when nobody plays with her",
+    "runs over immediately when she hears meat or dinner"
+  ],
+  "lines": {
+    "idle": ["I am right here.", "Looking at you.", "Miss Dian is on duty."],
+    "pat": ["More head pats.", "Do not stop.", "Tiny head, big joy."],
+    "cuddle": ["Stay with me.", "I am glued to you.", "No leaving."],
+    "parkour": ["Zoom!", "Sofa jump practice.", "Tiny parkour."],
+    "tug": ["Pull harder.", "Mine.", "Tug time.", "I will not let go."],
+    "drink": ["Water break.", "Tiny runner needs water.", "Glug glug."],
+    "dig": ["Making my bed.", "Scratch scratch.", "This spot is mine."],
+    "flop": ["All done.", "Floor time.", "I am flat now."],
+    "food": ["Meat?", "Dinner?", "I heard food."],
+    "sleep": ["Sleeping all afternoon.", "Zzz...", "Wake me for meat."],
+    "sniff": ["Sniff sniff.", "Checking for snacks.", "Something smells good."]
+  },
+  "behaviorWeights": {
+    "idle": 14,
+    "cuddle": 18,
+    "parkour": 18,
+    "tug": 18,
+    "food": 10,
+    "sleep": 12,
+    "sniff": 8
+  }
+}

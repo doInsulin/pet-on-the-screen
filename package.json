@@ -1,0 +1,21 @@
+{
+  "name": "bichon-desktop-pet",
+  "version": "0.1.0",
+  "private": true,
+  "description": "A local Windows desktop companion pet built from personal Bichon photos and videos.",
+  "main": "src/main.cjs",
+  "scripts": {
+    "start": "electron .",
+    "dev": "electron .",
+    "cutout": ".conda_envs\\deskpet\\python.exe scripts\\cutout_pet.py --input assets\\pet --out assets\\pet-cutouts --method onnx --onnx-model .model_cache\\rembg\\u2netp.onnx",
+    "cutout:high": ".conda_envs\\deskpet\\python.exe scripts\\cutout_pet.py --input assets\\pet --out assets\\pet-cutouts --method rembg --model isnet-general-use --max-model-side 1024",
+    "cutout:grabcut": ".conda_envs\\deskpet\\python.exe scripts\\cutout_pet.py --input assets\\pet --out assets\\pet-cutouts --method grabcut",
+    "imagegen:dry": ".conda_envs\\deskpet\\python.exe C:\\Users\\12727\\.codex\\skills\\.system\\imagegen\\scripts\\image_gen.py generate --prompt-file prompts\\xiao-budian-sprite.txt --size 1024x1024 --quality low --out output\\imagegen\\xiao-budian-sprite-draft.png --dry-run",
+    "imagegen:sprite": ".conda_envs\\deskpet\\python.exe C:\\Users\\12727\\.codex\\skills\\.system\\imagegen\\scripts\\image_gen.py generate --prompt-file prompts\\xiao-budian-sprite.txt --size 1024x1024 --quality medium --out output\\imagegen\\xiao-budian-sprite.png",
+    "package:win": "electron-packager . BichonPet --platform=win32 --arch=x64 --out=dist --overwrite"
+  },
+  "devDependencies": {
+    "electron": "^39.2.4",
+    "electron-packager": "^17.1.2"
+  }
+}

@@ -1,0 +1,11 @@
+Use case: stylized-concept
+Asset type: pixel-art sprite sheet for a transparent desktop pet app
+Primary request: Create a very cute pixel-art sprite sheet of "Xiao Budian", a tiny white 1.5-year-old female Bichon Frise desktop pet.
+Subject: A tiny white Bichon Frise, extra cute, chibi proportions, big fluffy round head, small compact body, black button eyes with bright highlights, tiny black nose, soft pink blush, fluffy ears blended into the round head, no collar.
+Personality: lively, naughty, clingy, playful, food-motivated, sleepy when alone.
+Sprite sheet layout: 4 columns x 4 rows, exactly 16 frames, equal-size cells, consistent character scale and position. Include these actions: idle bounce, clingy cuddle, indoor parkour run/jump, tug-of-war with a rope, playing with a blue elephant plush toy, carrot plush toy, food/meat alert running pose, long sleepy nap pose.
+Style/medium: polished kawaii pixel art, cozy Japanese desktop-pet game style, clean readable silhouette, rounded fluffy shapes, soft white fur with warm cream shadows, high charm, professional sprite sheet.
+Composition/framing: full body in every frame, generous padding inside each cell, centered character, no cropped parts.
+Color palette: transparent-friendly subject colors, white and warm cream fur, black eyes and nose, soft pink blush, blue elephant plush, orange carrot plush, tan rope.
+Constraints: no collar, no text labels, no UI, no background scene, no floor plane, no shadow, no watermark, no logos. Keep all frames consistent as the same dog. Make it much cuter than a simple programmer-art pixel dog.
+Avoid: realism, ugly proportions, harsh outlines, scary face, extra animals, humans, background clutter, text.
